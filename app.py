@@ -1,51 +1,61 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+from mapping_logic import preprocess_data, transform_data
 
-st.set_page_config(page_title="Formulaman - Listing Creator", layout="wide")
+st.set_page_config(page_title="Formulaman", layout="wide", page_icon="🧪")
 
-st.title("🧪 Formulaman: Marketplace Listing Generator")
-st.subheader("Upload your master CSV to generate channel-ready files")
+st.title("🧪 Formulaman: Marketplace Listing Tool")
+st.markdown("### Automate your e-commerce listings for Amazon, Flipkart, Meesho & more.")
 
-# 1. File Uploader
-uploaded_file = st.file_uploader("Choose your master CSV file", type="csv")
+# Sidebar for instructions/branding
+with st.sidebar:
+    st.header("About Formulaman")
+    st.info("Upload your master sheet. We expand variations and format columns automatically.")
+    st.write("Created by: Formula Man")
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.write("### Preview of Master Data", df.head())
+# 1. Upload Section
+uploaded_file = st.file_uploader("Upload your Master CSV file", type=["csv"])
 
-    # 2. Select Channels
+if uploaded_file:
+    # Read CSV (First row is header by default)
+    df_raw = pd.read_csv(uploaded_file)
+    
+    st.success("File uploaded successfully!")
+    
+    # 2. Preprocess (Variation Explosion)
+    df_processed = preprocess_data(df_raw)
+    
+    st.subheader("Data Preview (Variations Expanded)")
+    st.dataframe(df_processed.head(10))
+
+    # 3. Channel Selection
     channels = st.multiselect(
-        "Select target channels",
-        ["Amazon", "Flipkart", "Meesho", "Myntra", "Ajio"]
+        "Select Channels to Generate Files for:",
+        ["Amazon", "Flipkart", "Meesho", "Myntra", "Ajio"],
+        default=["Amazon", "Flipkart"]
     )
 
-    if st.button("Generate Files"):
+    if st.button("Generate Listing Files"):
         tabs = st.tabs(channels)
-
+        
         for i, channel in enumerate(channels):
             with tabs[i]:
-                st.info(f"Processing data for {channel}...")
+                # Map data to channel format
+                final_df = transform_data(df_processed, channel)
                 
-                # --- Logic Placeholder ---
-                # This is where you transform columns to match specific channel templates
-                processed_df = df.copy() 
-                
-                if channel == "Amazon":
-                    # Example: Rename 'Product_Name' to 'item_name' for Amazon
-                    # processed_df = processed_df.rename(columns={'Product_Name': 'item_name'})
-                    pass
-                
-                st.dataframe(processed_df.head())
+                st.write(f"### {channel} Template Preview")
+                st.dataframe(final_df.head())
 
-                # 3. Download Button for each channel
-                towrite = BytesIO()
-                processed_df.to_csv(towrite, index=False)
-                towrite.seek(0)
+                # Prepare for download
+                csv_buffer = BytesIO()
+                final_df.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
                 
                 st.download_button(
                     label=f"Download {channel} CSV",
-                    data=towrite,
-                    file_name=f"formulaman_{channel.lower()}_list.csv",
-                    mime="text/csv"
+                    data=csv_buffer,
+                    file_name=f"Formulaman_{channel}_Listing.csv",
+                    mime="text/csv",
+                    key=f"dl_{channel}"
                 )
