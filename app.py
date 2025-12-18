@@ -1,61 +1,73 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+from datetime import datetime
 from mapping_logic import preprocess_data, transform_data
 
 st.set_page_config(page_title="Formulaman", layout="wide", page_icon="🧪")
 
-st.title("🧪 Formulaman: Marketplace Listing Tool")
-st.markdown("### Automate your e-commerce listings for Amazon, Flipkart, Meesho & more.")
+st.title("🧪 Formulaman: Listing & Image Preview")
+st.markdown("Automate listings and preview product visuals instantly.")
 
-# Sidebar for instructions/branding
-with st.sidebar:
-    st.header("About Formulaman")
-    st.info("Upload your master sheet. We expand variations and format columns automatically.")
-    st.write("Created by: Formula Man")
-
-# 1. Upload Section
+# 1. File Upload
 uploaded_file = st.file_uploader("Upload your Master CSV file", type=["csv"])
 
 if uploaded_file:
-    # Read CSV (First row is header by default)
     df_raw = pd.read_csv(uploaded_file)
-    
-    st.success("File uploaded successfully!")
-    
-    # 2. Preprocess (Variation Explosion)
+    st.success("File uploaded!")
+
+    # 2. Process Data (Variations)
     df_processed = preprocess_data(df_raw)
     
-    st.subheader("Data Preview (Variations Expanded)")
-    st.dataframe(df_processed.head(10))
+    # Extract Category for naming (using first available row)
+    category_name = "General"
+    if 'Product Category*' in df_processed.columns:
+        category_name = str(df_processed['Product Category*'].iloc[0]).replace(" ", "_")
 
-    # 3. Channel Selection
+    # 3. Image Preview Section
+    if 'Main Image*' in df_processed.columns:
+        st.subheader("🖼️ Product Image Preview")
+        # Get unique images to avoid repeating the same image for every variation row
+        unique_images = df_processed['Main Image*'].unique()
+        
+        cols = st.columns(5) # Display 5 images per row
+        for idx, img_url in enumerate(unique_images):
+            with cols[idx % 5]:
+                try:
+                    st.image(img_url, use_container_width=True, caption=f"Product {idx+1}")
+                except:
+                    st.error(f"Could not load image {idx+1}")
+
+    # 4. Channel Selection & Generation
+    st.divider()
     channels = st.multiselect(
-        "Select Channels to Generate Files for:",
+        "Select Target Channels:",
         ["Amazon", "Flipkart", "Meesho", "Myntra", "Ajio"],
-        default=["Amazon", "Flipkart"]
+        default=["Amazon"]
     )
 
-    if st.button("Generate Listing Files"):
+    if st.button("Generate Downloadable Files"):
         tabs = st.tabs(channels)
-        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
         for i, channel in enumerate(channels):
             with tabs[i]:
-                # Map data to channel format
                 final_df = transform_data(df_processed, channel)
                 
-                st.write(f"### {channel} Template Preview")
-                st.dataframe(final_df.head())
+                st.write(f"### {channel} Preview")
+                st.dataframe(final_df.head(10))
 
-                # Prepare for download
+                # Dynamic Filename: "Channel_Category_Date"
+                file_name = f"{channel}_{category_name}_{current_date}.csv"
+
                 csv_buffer = BytesIO()
                 final_df.to_csv(csv_buffer, index=False)
                 csv_buffer.seek(0)
                 
                 st.download_button(
-                    label=f"Download {channel} CSV",
+                    label=f"📥 Download {file_name}",
                     data=csv_buffer,
-                    file_name=f"Formulaman_{channel}_Listing.csv",
+                    file_name=file_name,
                     mime="text/csv",
-                    key=f"dl_{channel}"
+                    key=f"dl_{channel}_{idx}"
                 )
