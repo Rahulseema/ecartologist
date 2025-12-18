@@ -1,40 +1,51 @@
 import pandas as pd
 
+def preprocess_data(df):
+    """
+    Cleans the data and expands comma-separated variations into multiple rows.
+    """
+    # Define the variation column name exactly as it appears in your template
+    var_col = 'Variations (comma separated)*'
+    
+    if var_col in df.columns:
+        # Convert to string and split by comma
+        df[var_col] = df[var_col].astype(str).str.split(',')
+        # Explode into separate rows
+        df = df.explode(var_col)
+        # Clean whitespace
+        df[var_col] = df[var_col].str.strip()
+    
+    return df
+
 def transform_data(df, channel):
     """
-    Transforms the master CSV into the specific format 
-    required by the chosen marketplace.
+    Applies marketplace-specific column mappings.
     """
     processed_df = pd.DataFrame()
 
     if channel == "Amazon":
-        # Example Amazon Mapping
-        # Mapping: Master Column -> Amazon Template Column
-        processed_df['item_name'] = df.get('Product Name', '')
-        processed_df['external_product_id'] = df.get('SKU', '')
-        processed_df['external_product_id_type'] = 'UPC'
-        processed_df['standard_price'] = df.get('Price', 0)
-        processed_df['quantity'] = df.get('Stock', 0)
-        # Amazon often requires specific static values
-        processed_df['feed_product_type'] = 'GENERIC'
+        processed_df['item_name'] = df.get('Product Name*', '') + " - " + df.get('Variations (comma separated)*', '')
+        processed_df['external_product_id'] = df.get('SKU Code*', '')
+        processed_df['standard_price'] = df.get('Selling Price*', 0)
+        processed_df['quantity'] = df.get('Inventory*', 0)
+        processed_df['main_image_url'] = df.get('Main Image*', '')
 
     elif channel == "Flipkart":
-        # Example Flipkart Mapping
-        processed_df['FSN'] = df.get('Serial Number', '')
-        processed_df['Listing Price'] = df.get('Price', 0)
-        processed_df['Stock'] = df.get('Stock', 0)
-        processed_df['Shipping Provider'] = 'Flipkart'
-        processed_df['Status'] = 'Active'
+        processed_df['Seller SKU ID'] = df.get('SKU Code*', '')
+        processed_df['Size'] = df.get('Variations (comma separated)*', '')
+        processed_df['MRP'] = df.get('MRP*', 0)
+        processed_df['Selling Price'] = df.get('Selling Price*', 0)
+        processed_df['Main Image'] = df.get('Main Image*', '')
 
     elif channel == "Meesho":
-        # Example Meesho Mapping
-        processed_df['Catalog Name'] = df.get('Product Name', '')
-        processed_df['Price'] = df.get('Price', 0)
-        processed_df['GST %'] = 18
-        processed_df['Product Weight'] = df.get('Weight', 500)
+        processed_df['Product Name'] = df.get('Product Name*', '')
+        processed_df['Size'] = df.get('Variations (comma separated)*', '')
+        processed_df['Price'] = df.get('Selling Price*', 0)
+        processed_df['SKU'] = df.get('SKU Code*', '')
+        processed_df['Image 1'] = df.get('Main Image*', '')
 
     else:
-        # Fallback if no logic is defined yet
+        # Default for Myntra/Ajio if mapping isn't defined yet
         processed_df = df.copy()
 
     return processed_df
