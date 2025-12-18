@@ -7,7 +7,6 @@ def preprocess_data(df):
     """
     var_col = 'Variations (comma separated)*'
     if var_col in df.columns:
-        # Convert to string, split by comma, and explode into rows
         df[var_col] = df[var_col].astype(str).str.split(',')
         df = df.explode(var_col)
         df[var_col] = df[var_col].str.strip()
@@ -22,7 +21,8 @@ def generate_ai_description(product_name, brand, material, variation, api_key):
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        # UPDATED MODEL NAME HERE
+        model = genai.GenerativeModel('gemini-1.5-flash') 
         
         prompt = f"""
         Write a professional e-commerce product description for:
