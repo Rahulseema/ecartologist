@@ -21,21 +21,27 @@ def generate_ai_description(product_name, brand, material, variation, api_key):
     
     try:
         genai.configure(api_key=api_key)
-        # UPDATED MODEL NAME HERE
+        
+        # Using the standard model path that works across v1 and v1beta
         model = genai.GenerativeModel('gemini-1.5-flash') 
         
         prompt = f"""
-        Write a professional e-commerce product description for:
+        Act as an e-commerce SEO expert. Write a professional product description for:
         Product: {product_name}
         Brand: {brand}
         Material: {material}
         Variation/Size: {variation}
         
-        Include 3 bullet points. Max 100 words.
+        Format: 
+        1. A catchy opening sentence.
+        2. 3 bullet points of key features.
+        Keep the total length under 100 words.
         """
+        
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
+        # If 1.5-flash fails, this will catch the specific error for debugging
         return f"AI Error: {str(e)}"
 
 def transform_data(df, channel):
@@ -46,9 +52,9 @@ def transform_data(df, channel):
 
     if channel == "Amazon":
         processed_df['item_name'] = df.get('Product Name*', '') + " " + df.get('Variations (comma separated)*', '')
-        processed_df['external_product_id'] = df.get('SKU Code*', '')
-        processed_df['standard_price'] = df.get('Selling Price*', 0)
-        processed_df['main_image_url'] = df.get('Main Image*', '')
+        processed_df['sku'] = df.get('SKU Code*', '')
+        processed_df['price'] = df.get('Selling Price*', 0)
+        processed_df['image_url'] = df.get('Main Image*', '')
         processed_df['description'] = df.get('Product Description*', '')
 
     elif channel == "Flipkart":
