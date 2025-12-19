@@ -10,17 +10,26 @@ def preprocess_data(df):
         df[var_col] = df[var_col].str.strip()
     return df
 
+def get_available_models(api_key):
+    """Debug function to see what your key can access."""
+    try:
+        genai.configure(api_key=api_key, transport='rest')
+        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        return models
+    except Exception as e:
+        return [f"Error listing models: {str(e)}"]
+
 def generate_ai_description(product_name, brand, material, variation, api_key):
-    """Calls Google Gemini AI using the most stable model path."""
+    """Calls Google Gemini AI using REST transport for stability."""
     if not api_key or not product_name:
         return "Missing data"
     
     try:
-        genai.configure(api_key=api_key)
+        # transport='rest' is the FIX for Streamlit 404/Connection issues
+        genai.configure(api_key=api_key, transport='rest')
         
-        # Use the explicit model name that is currently standard
-        # If 'gemini-1.5-flash' fails, we use the model's full resource name
-        model = genai.GenerativeModel(model_name='models/gemini-1.5-flash')
+        # Try the most stable path
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
         Write a professional e-commerce product description for:
@@ -29,10 +38,7 @@ def generate_ai_description(product_name, brand, material, variation, api_key):
         Material: {material}
         Variation/Size: {variation}
         
-        Format: 
-        - One catchy intro sentence.
-        - 3 short bullet points of key benefits.
-        Max 80 words.
+        Include 3 bullet points. Max 80 words.
         """
         
         response = model.generate_content(prompt)
@@ -41,11 +47,10 @@ def generate_ai_description(product_name, brand, material, variation, api_key):
         return f"AI Error: {str(e)}"
 
 def transform_data(df, channel):
-    """Maps columns to marketplace templates for Formulaman."""
+    """Maps columns to marketplace templates."""
     processed_df = pd.DataFrame()
     
-    # Common fields for all channels
-    desc = df.get('Product Description*', 'No description generated')
+    desc = df.get('Product Description*', '')
     name = df.get('Product Name*', '')
     var = df.get('Variations (comma separated)*', '')
     sku = df.get('SKU Code*', '')
@@ -53,25 +58,14 @@ def transform_data(df, channel):
     img = df.get('Main Image*', '')
 
     if channel == "Amazon":
-        processed_df['item_name'] = f"{name} ({var})"
-        processed_df['external_product_id'] = sku
-        processed_df['standard_price'] = price
-        processed_df['main_image_url'] = img
+        processed_df['item_name'] = f"{name} {var}"
+        processed_df['sku'] = sku
+        processed_df['price'] = price
         processed_df['description'] = desc
-
     elif channel == "Flipkart":
         processed_df['Seller SKU ID'] = sku
-        processed_df['Size'] = var
-        processed_df['Selling Price'] = price
         processed_df['Description'] = desc
-
     elif channel == "Meesho":
         processed_df['Product Name'] = name
-        processed_df['Size'] = var
-        processed_df['Price'] = price
         processed_df['Description'] = desc
-        
-    else:
-        processed_df = df.copy()
-
     return processed_df
