@@ -1,7 +1,7 @@
 import pandas as pd
 
 def preprocess_data(df):
-    """Explodes variations into separate rows."""
+    """Explodes variations from your CSV into separate rows."""
     var_col = 'Variations (comma separated)*'
     if var_col in df.columns:
         df[var_col] = df[var_col].astype(str).str.split(',')
@@ -9,61 +9,49 @@ def preprocess_data(df):
         df[var_col] = df[var_col].str.strip()
     return df
 
-def generate_template_description(row):
+def generate_dynamic_description(row):
     """
-    Alternative to AI: Creates a professional description using product data.
-    Fast, reliable, and SEO-friendly.
+    Creates high-conversion descriptions using Category and Product data.
     """
-    name = row.get('Product Name*', 'Product')
-    brand = row.get('Brand*', 'Generic')
-    material = row.get('Fabric Type*', 'High Quality Material')
+    name = row.get('Product Name*', 'Premium Product')
+    brand = row.get('Brand*', 'Our Brand')
+    material = row.get('Fabric Type*', 'High-Quality Material')
     variation = row.get('Variations (comma separated)*', '')
-    cat = row.get('Product Category*', 'Item')
+    category = row.get('Product Category*', 'Essentials')
     
+    # Dynamic SEO Template
     description = (
-        f"Buy this premium {brand} {name} today. "
-        f"This {cat} is crafted from {material} for maximum durability and style. "
-        f"Available in size/variation: {variation}. "
-        f"Perfect for daily use and gifting."
+        f"Enhance your lifestyle with the {brand} {name}. "
+        f"This premium {category} is expertly crafted from {material} "
+        f"to ensure long-lasting durability and peak performance. "
+        f"Perfect for daily use, this {variation} variation is a must-have for those "
+        f"who value quality and style in their {category} collection."
     )
     return description
 
 def transform_data(df, channel):
-    """Maps internal data to marketplace columns for Formulaman."""
+    """Maps the final data to marketplace templates."""
     processed_df = pd.DataFrame()
     
-    # Common variables
+    # Common mapped fields
+    desc = df.get('Product Description*', '')
     name = df.get('Product Name*', '')
-    variation = df.get('Variations (comma separated)*', '')
+    var = df.get('Variations (comma separated)*', '')
     sku = df.get('SKU Code*', '')
     price = df.get('Selling Price*', 0)
-    mrp = df.get('MRP*', 0)
     img = df.get('Main Image*', '')
-    desc = df.get('Product Description*', '')
 
     if channel == "Amazon":
-        processed_df['item_name'] = f"{name} ({variation})"
-        processed_df['external_product_id'] = sku
-        processed_df['standard_price'] = price
+        processed_df['item_name'] = f"{name} - {var}"
+        processed_df['sku'] = sku
         processed_df['main_image_url'] = img
         processed_df['description'] = desc
-
     elif channel == "Flipkart":
         processed_df['Seller SKU ID'] = sku
-        processed_df['Size'] = variation
-        processed_df['Selling Price'] = price
-        processed_df['MRP'] = mrp
+        processed_df['Size'] = var
         processed_df['Description'] = desc
-
     elif channel == "Meesho":
         processed_df['Product Name'] = name
-        processed_df['Size'] = variation
-        processed_df['Price'] = price
-        processed_df['SKU'] = sku
         processed_df['Description'] = desc
         processed_df['Main Image'] = img
-        
-    else:
-        processed_df = df.copy()
-
     return processed_df
