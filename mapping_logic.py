@@ -1,7 +1,7 @@
 import pandas as pd
 
 def preprocess_data(df, selected_category):
-    """Explodes variations and standardizes categories."""
+    """Prepares data by exploding variations and injecting the category vertical."""
     df['Product Category*'] = selected_category
     
     # Remove context/instruction rows if present in the template
@@ -31,7 +31,7 @@ def generate_fashion_description(row):
     return templates.get(cat, f"Premium {brand} {cat} crafted for excellence.")
 
 def transform_data(df, channel, category):
-    """Maps fields to deep marketplace headers (300+ fields)."""
+    """Maps fields to deep marketplace headers (Amazon, Flipkart, Meesho)."""
     p = pd.DataFrame()
     
     sku = df.get('SKU Code*', '')
