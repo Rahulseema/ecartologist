@@ -1,23 +1,23 @@
 import pandas as pd
 
 def preprocess_data(df, selected_category):
-    """Explodes variations (Size/Color) and injects the vertical context."""
+    """Explodes variations and standardizes data based on the business vertical."""
     df['Product Category*'] = selected_category
     
-    # Cleans any context/instruction rows from the template
+    # Strip instruction/context rows if they exist in the master template
     if len(df) > 0 and any(x in str(df.iloc[0].values) for x in ['Text', 'Single', 'Example']):
         df = df.iloc[1:].reset_index(drop=True)
 
+    # Vin Lister style variation explosion
     var_col = 'Variations (comma separated)*'
     if var_col in df.columns:
-        # Standard Vin Lister logic: Explode comma-separated variations into rows
         df[var_col] = df[var_col].astype(str).str.split(',')
         df = df.explode(var_col)
         df[var_col] = df[var_col].str.strip()
     return df
 
 def generate_fashion_description(row):
-    """Dynamic SEO Generator based on category and material."""
+    """Dynamic SEO content generation tailored to the fashion vertical."""
     name = row.get('Product Name*', 'Product')
     brand = row.get('Brand*', 'Formula Man')
     cat = row.get('Product Category*', 'Apparel')
@@ -32,36 +32,39 @@ def generate_fashion_description(row):
     return templates.get(cat, f"Premium {brand} {cat} crafted for excellence.")
 
 def transform_data(df, channel, category):
-    """Deep maps Master Pro fields to the 300+ marketplace headers."""
+    """Maps Master Pro fields to deep marketplace headers (Amazon 344, Flipkart 70)."""
     p = pd.DataFrame()
     
-    # Shared Data Points
     sku = df.get('SKU Code*', '')
     name = df.get('Product Name*', '')
     var = df.get('Variations (comma separated)*', '')
     price = df.get('Selling Price*', 0)
+    mrp = df.get('MRP*', 0)
     img = df.get('Main Image*', '')
+    hsn = df.get('HSN*', '')
 
     if channel == "Amazon":
-        # Maps to the 344 fields in your amazon.csv reference
         p['SKU'] = sku
         p['Item Name'] = f"{name} ({var})"
         p['Product Type'] = category.upper().replace(" ", "_")
         p['Your Price INR (Sell on Amazon, IN)'] = price
+        p['Maximum Retail Price (Sell on Amazon, IN)'] = mrp
         p['Main Image URL'] = img
-        p['HSN'] = df.get('HSN*', '')
+        p['HSN'] = hsn
+        p['Product Description'] = df.get('Product Description*', '')
 
     elif channel == "Flipkart":
-        # Maps to the 70 fields in your flipkart.csv reference
         p['Seller SKU ID'] = sku
         p['Product Title'] = name
+        p['MRP (INR)'] = mrp
+        p['Your selling price (INR)'] = price
         p['Size'] = var
         p['Main Image URL'] = img
-        p['MRP (INR)'] = df.get('MRP*', 0)
-        p['HSN'] = df.get('HSN*', '')
+        p['Description'] = df.get('Product Description*', '')
+        p['HSN'] = hsn
 
     elif channel == "Meesho":
-        # Dynamic headers specifically for fashion categories in Meesho
+        # Fashion-specific header logic for Meesho
         if category == "Top & Tunic":
             p['Catalog Name'] = name
             p['Top/Tunic SKU'] = sku
@@ -69,7 +72,8 @@ def transform_data(df, channel, category):
         else:
             p['Product Name'] = name
             p['SKU'] = sku
-        p['Main Image'] = img
+            p['Size'] = var
         p['Price'] = price
+        p['Main Image'] = img
 
     return p
