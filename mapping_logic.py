@@ -1,10 +1,10 @@
 import pandas as pd
 
 def preprocess_data(df, selected_category):
-    """Explodes variations and standardizes data."""
+    """Explodes variations and sets category context[cite: 35, 48]."""
     df['Product Category*'] = selected_category
     
-    # Cleaning any context rows if they exist in the uploaded file
+    # Cleaning any context rows from uploaded reference sheets 
     if len(df) > 0 and any(x in str(df.iloc[0].values) for x in ['Text', 'Single', 'Example']):
         df = df.iloc[1:].reset_index(drop=True)
 
@@ -16,7 +16,7 @@ def preprocess_data(df, selected_category):
     return df
 
 def generate_fashion_description(row):
-    """Generates professional descriptions based on category keywords."""
+    """Generates professional descriptions based on AdminUIUX keywords."""
     name = row.get('Product Name*', 'Product')
     brand = row.get('Brand*', 'Formula Man')
     cat = row.get('Product Category*', 'Apparel')
@@ -31,38 +31,27 @@ def generate_fashion_description(row):
     return templates.get(cat, f"Premium {brand} {cat} crafted for excellence.")
 
 def transform_data(df, channel, category):
-    """Maps Master Pro fields to deep marketplace headers."""
+    """Maps Master Pro fields to deep marketplace headers[cite: 35, 48, 52]."""
     p = pd.DataFrame()
     
-    # Core Data Extraction
     sku = df.get('SKU Code*', '')
     name = df.get('Product Name*', '')
     var = df.get('Variations (comma separated)*', '')
     price = df.get('Selling Price*', 0)
-    mrp = df.get('MRP*', 0)
-    img = df.get('Main Image*', '')
 
     if channel == "Amazon":
-        p['SKU'] = sku
-        p['Item Name'] = f"{name} ({var})"
-        p['Product Type'] = category.upper().replace(" ", "_")
-        p['Your Price INR (Sell on Amazon, IN)'] = price
-        p['Maximum Retail Price (Sell on Amazon, IN)'] = mrp
-        p['Main Image URL'] = img
-        p['Product Description'] = df.get('Product Description*', '')
-        p['Fabric Type'] = df.get('Material*', '')
-        p['HSN'] = df.get('HSN*', '')
+        p['SKU'] = sku [cite: 35]
+        p['Item Name'] = f"{name} ({var})" [cite: 35]
+        p['Product Type'] = category.upper().replace(" ", "_") [cite: 35]
+        p['Your Price INR (Sell on Amazon, IN)'] = price [cite: 36]
+        p['HSN'] = df.get('HSN*', '') [cite: 45]
 
     elif channel == "Flipkart":
-        p['Seller SKU ID'] = sku
-        p['Product Title'] = name
-        p['MRP (INR)'] = mrp
-        p['Your selling price (INR)'] = price
-        p['Size'] = var
-        p['Main Image URL'] = img
-        p['Description'] = df.get('Product Description*', '')
-        p['HSN'] = df.get('HSN*', '')
-        p['Brand Fabric'] = df.get('Material*', '')
+        p['Seller SKU ID'] = sku [cite: 48]
+        p['Product Title'] = name [cite: 48]
+        p['MRP (INR)'] = df.get('MRP*', 0) [cite: 48]
+        p['Size'] = var [cite: 48]
+        p['HSN'] = df.get('HSN*', '') [cite: 48]
 
     elif channel == "Meesho":
         if category == "Top & Tunic":
@@ -72,7 +61,6 @@ def transform_data(df, channel, category):
         else:
             p['Product Name'] = name
             p['SKU'] = sku
-        p['Main Image'] = img
         p['Price'] = price
 
     return p
