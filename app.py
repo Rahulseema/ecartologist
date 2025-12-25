@@ -2,73 +2,87 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
-from mapping_logic import preprocess_data, transform_data, generate_dynamic_description
+from mapping_logic import preprocess_data, transform_data, generate_fashion_description
 
+# --- Page Config ---
 st.set_page_config(page_title="Formulaman Pro", layout="wide", page_icon="🧪")
 
-# --- Premium Pastel UI ---
+# --- UI Customization ---
 st.markdown("""
     <style>
-    .stApp { background-color: #F8F9F9; }
+    .stApp { background-color: #FDF9F3; } /* Pastel Cream */
     html, body, [class*="st-"] { color: #000000 !important; font-weight: 500; }
-    .stButton>button { background-color: #D6EAF8 !important; color: black !important; border-radius: 12px; font-weight: bold; border: 1px solid #AED6F1; transition: 0.3s; }
-    .stButton>button:hover { background-color: #AED6F1 !important; transform: scale(1.02); }
-    .stTabs [aria-selected="true"] { background-color: #D1F2EB !important; color: black !important; border-radius: 10px; font-weight: bold; }
+    .stButton>button { background-color: #E8F8F5 !important; border-radius: 12px; font-weight: bold; border: 1px solid #A3E4D7; }
+    .stTabs [aria-selected="true"] { background-color: #FADBD8 !important; color: black !important; border-radius: 8px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🧪 Formulaman: Deep Listing Pro")
-st.markdown("##### *Unified Master Template for Amazon, Flipkart, and Meesho*")
+st.markdown("##### *Unified Master Engine for Fashion Marketplaces*")
 
+# --- Sidebar ---
 with st.sidebar:
-    st.header("Formula Man HQ")
-    st.info("Goal: Maximize Revenue through Master Automation")
-    st.write("v4.0 (Deep Mapping Edition)")
-
-# 1. File Upload
-uploaded_file = st.file_uploader("📂 Upload Master Template Pro CSV", type=["csv"])
-
-if uploaded_file:
-    df_raw = pd.read_csv(uploaded_file)
-    df_processed = preprocess_data(df_raw)
-    
-    # Auto-Description Generation
-    if 'Product Description*' not in df_processed.columns or df_processed['Product Description*'].isnull().all():
-        df_processed['Product Description*'] = df_processed.apply(generate_dynamic_description, axis=1)
-
-    st.success(f"Successfully standardizing {len(df_processed)} variations across all deep fields.")
-
-    # 2. Deep Data Verification
-    st.subheader("🔍 Deep Field Verification")
-    st.dataframe(
-        df_processed,
-        column_config={
-            "Main Image*": st.column_config.ImageColumn("Preview"),
-            "Product Description*": st.column_config.TextColumn("Generated Description", width="large")
-        },
-        use_container_width=True,
-        hide_index=True
-    )
-
-    # 3. Channel Tabs & Download
+    st.header("Formula Man Control")
+    st.info("Automate 300+ fields with one master formula.")
     st.divider()
-    st.subheader("🎯 Marketplace Export Hub")
-    selected_channels = st.pills("Select Channels:", options=["Amazon", "Flipkart", "Meesho"], selection_mode="multi", default=["Amazon", "Flipkart"])
+    st.write("v6.0 (Enterprise Edition)")
 
-    if selected_channels:
-        cat_name = str(df_processed['Product Category*'].iloc[0]).replace(" ", "_") if 'Product Category*' in df_processed.columns else "List"
-        date_str = datetime.now().strftime("%d-%m-%Y")
+# Step 1: Category Lock
+st.subheader("1️⃣ Select Business Category")
+selected_cat = st.selectbox(
+    "Identify your product niche to unlock the engine:",
+    ["", "Dress", "Top & Tunic", "Kurti/Kurta", "Tshirts"],
+    index=0
+)
+
+if selected_cat == "":
+    st.warning("⚠️ Please select a category to proceed.")
+else:
+    # Step 2: Upload
+    st.subheader(f"2️⃣ Upload {selected_cat} Master Sheet")
+    uploaded_file = st.file_uploader("Drop your Master CSV here", type=["csv"])
+
+    if uploaded_file:
+        df_raw = pd.read_csv(uploaded_file)
         
-        tabs = st.tabs(selected_channels)
-        for i, channel in enumerate(selected_channels):
-            with tabs[i]:
-                final_df = transform_data(df_processed, channel)
-                file_name = f"{channel}_{cat_name}_{date_str}.csv"
-                
-                st.write(f"Generating **{len(final_df)}** rows for {channel}")
-                st.dataframe(final_df.head(10), use_container_width=True)
+        # Step 3: Engine Processing
+        df_processed = preprocess_data(df_raw, selected_cat)
+        
+        # Auto-SEO content generation
+        df_processed['Product Description*'] = df_processed.apply(generate_fashion_description, axis=1)
 
-                csv_buffer = BytesIO()
-                final_df.to_csv(csv_buffer, index=False)
-                csv_buffer.seek(0)
-                st.download_button(label=f"📥 Download {file_name}", data=csv_buffer, file_name=file_name, mime="text/csv", key=f"dl_{channel}")
+        st.success(f"Successfully standardizing listings for: {selected_cat}")
+
+        # Verification Preview
+        st.dataframe(
+            df_processed, 
+            column_config={"Main Image*": st.column_config.ImageColumn("Visual Preview")},
+            use_container_width=True, hide_index=True
+        )
+
+        # Step 4: Marketplace Export
+        st.divider()
+        st.subheader("3️⃣ Marketplace Export Hub")
+        channels = st.pills("Active Channels:", ["Amazon", "Flipkart", "Meesho"], selection_mode="multi", default=["Amazon", "Flipkart"])
+
+        if channels:
+            date_str = datetime.now().strftime("%d-%m-%Y")
+            tabs = st.tabs(channels)
+            for i, channel in enumerate(channels):
+                with tabs[i]:
+                    final_df = transform_data(df_processed, channel, selected_cat)
+                    file_name = f"{channel}_{selected_cat.replace(' ', '_')}_{date_str}.csv"
+                    
+                    st.write(f"Generating **{len(final_df)}** SKU variations for {channel}")
+                    st.dataframe(final_df.head(10), use_container_width=True)
+                    
+                    csv_buffer = BytesIO()
+                    final_df.to_csv(csv_buffer, index=False)
+                    csv_buffer.seek(0)
+                    st.download_button(
+                        label=f"📥 Download {file_name}",
+                        data=csv_buffer,
+                        file_name=file_name,
+                        mime="text/csv",
+                        key=f"dl_{channel}"
+                    )
