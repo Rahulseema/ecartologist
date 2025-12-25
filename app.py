@@ -7,121 +7,93 @@ from mapping_logic import preprocess_data, transform_data, generate_fashion_desc
 # --- Page Config ---
 st.set_page_config(page_title="Formulaman | Admin Dashboard", layout="wide", page_icon="📊")
 
-# --- Forced AdminUIUX Theme (Aggressive CSS for Visibility) ---
+# --- Aggressive AdminUIUX Styling (Forced Stability) ---
 st.markdown("""
     <style>
-    /* 1. Main Dashboard Background (Light Blue-Grey) */
-    .stApp { 
-        background-color: #F0F4F8 !important; 
-    }
-    
-    /* 2. Global Text Force (Deep Black) */
+    .stApp { background-color: #F0F4F8 !important; }
     html, body, [class*="st-"], .stMarkdown, p, h1, h2, h3, h5, label, span {
-        color: #1A202C !important;
-        font-family: 'Inter', sans-serif !important;
+        color: #000000 !important;
+        font-weight: 500 !important;
     }
-
-    /* 3. White Cards for Content */
-    div[data-testid="stVerticalBlock"] > div:has(div.stMarkdown), 
-    div.stFileUploader, div.stDataFrame, .stSelectbox {
+    /* White Cards */
+    .stSelectbox, .stFileUploader, div[data-testid="stVerticalBlock"] > div:has(div.stDataFrame) {
         background-color: #FFFFFF !important;
-        padding: 24px !important;
+        padding: 20px !important;
         border-radius: 8px !important;
         border: 1px solid #E2E8F0 !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-        margin-bottom: 24px !important;
+        margin-bottom: 20px !important;
     }
-
-    /* 4. DROPDOWN (SELECTBOX) SPECIFIC FIX */
-    /* This ensures the text inside the dropdown and the options are BLACK on WHITE */
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+    /* Dropdown Text Visibility */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] {
         background-color: #FFFFFF !important;
         color: #000000 !important;
-        border-radius: 4px;
+        border: 1px solid #CBD5E0 !important;
     }
-    
-    /* Options list visibility */
-    ul[data-testid="stSelectboxVirtualList"] li {
-        color: #000000 !important;
-        background-color: #FFFFFF !important;
-    }
-
-    /* Sidebar Background */
-    section[data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        border-right: 1px solid #E2E8F0;
-    }
-
-    /* Primary Buttons (Dark Navy/Black) */
-    .stButton>button {
-        background-color: #2D3748 !important;
-        color: #FFFFFF !important;
-        border-radius: 6px;
-        font-weight: 600;
-        border: none;
-        width: 100%;
-        height: 45px;
-    }
+    /* Buttons */
+    .stButton>button { background-color: #2D3748 !important; color: white !important; border-radius: 6px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Header ---
-st.title("📊 Formulaman Dashboard")
-st.markdown("##### *Enterprise-Grade Multi-Channel Listing Engine*")
+st.title("📊 Formulaman Admin Console")
 
-# Step 1: Mandatory Category Selection
-st.subheader("1️⃣ Initialize Business Vertical")
-selected_cat = st.selectbox(
-    "Select Category (This maps your 300+ fields):",
-    ["", "Dress", "Top & Tunic", "Kurti/Kurta", "Tshirts"],
-    index=0
-)
+# Step 1: Category Vertical
+with st.container():
+    st.subheader("1️⃣ Select Business Vertical")
+    selected_cat = st.selectbox(
+        "Business Category:",
+        ["", "Dress", "Top & Tunic", "Kurti/Kurta", "Tshirts"],
+        index=0
+    )
 
 if selected_cat == "":
-    st.info("👋 System Standby. Please select a category vertical above to load the mapping engine.")
+    st.info("👋 Select a vertical to unlock the processing engine.")
 else:
-    with st.sidebar:
-        st.header("Formula Man Control")
-        st.write(f"Mode: **{selected_cat}**")
-        st.divider()
-        try:
-            with open("Master_Template_Pro_Formulaman.csv", "rb") as f:
-                st.download_button("📥 Get Master Template", f, "Master_Template.csv", "text/csv")
-        except: st.error("Template file missing.")
+    # --- DUMMY SAMPLE DATA GENERATION ---
+    sample_data = {
+        'SKU Code*': ['SKU001'], 'Product Name*': [f'Sample {selected_cat}'],
+        'Brand*': ['Formula Man'], 'MRP*': [1999], 'Selling Price*': [899],
+        'Inventory*': [100], 'Material*': ['Cotton'], 'HSN*': ['6204'],
+        'Weight_KG*': [0.4], 'Length_CM*': [30], 'Breadth_CM*': [25], 'Height_CM*': [5],
+        'Main Image*': ['https://example.com/image.jpg'],
+        'Variations (comma separated)*': ['S, M, L, XL']
+    }
+    sample_df = pd.DataFrame(sample_data)
+    csv_sample = sample_df.to_csv(index=False).encode('utf-8')
 
-    # Step 2: Dataset Upload
-    st.subheader(f"2️⃣ Upload {selected_cat} Dataset")
-    uploaded_file = st.file_uploader("Drop your CSV file here for bulk processing", type=["csv"])
+    # --- Step 2: Download & Upload Area ---
+    with st.container():
+        st.subheader(f"2️⃣ Data Import: {selected_cat}")
+        
+        # Download Sample (Just above Upload)
+        st.download_button(
+            label=f"📥 Download {selected_cat} Sample Template",
+            data=csv_sample,
+            file_name=f"Sample_Template_{selected_cat.replace(' ', '_')}.csv",
+            mime="text/csv",
+            help="Download this file, fill your data, and upload it below."
+        )
+        
+        uploaded_file = st.file_uploader("Upload your completed Master File", type=["csv"])
 
     if uploaded_file:
         df_raw = pd.read_csv(uploaded_file)
         df_processed = preprocess_data(df_raw, selected_cat)
-        
-        # Generation
         df_processed['Product Description*'] = df_processed.apply(generate_fashion_description, axis=1)
 
-        st.success(f"Processing {len(df_processed)} SKU variations for {selected_cat}.")
-
-        # Step 3: Analytics Preview
+        st.success(f"Successfully processed variations for {selected_cat}.")
         st.dataframe(df_processed, use_container_width=True, hide_index=True)
 
-        # Step 4: Export Hub
+        # Step 3: Distribution
         st.divider()
-        st.subheader("3️⃣ Distribution Hub")
-        channels = st.pills("Select Channels:", ["Amazon", "Flipkart", "Meesho"], selection_mode="multi", default=["Amazon", "Flipkart"])
-
-        if channels:
-            date_str = datetime.now().strftime("%d-%m-%Y")
-            tabs = st.tabs(channels)
-            for i, channel in enumerate(channels):
-                with tabs[i]:
-                    final_df = transform_data(df_processed, channel, selected_cat)
-                    file_name = f"{channel}_{selected_cat.replace(' ', '_')}_{date_str}.csv"
-                    
-                    st.write(f"Export format for **{channel}**")
-                    st.dataframe(final_df.head(10), use_container_width=True)
-                    
-                    csv_buffer = BytesIO()
-                    final_df.to_csv(csv_buffer, index=False)
-                    csv_buffer.seek(0)
-                    st.download_button(label=f"📥 Download {file_name}", data=csv_buffer, file_name=file_name, key=f"dl_{channel}")
+        st.subheader("3️⃣ Marketplace Distribution Hub")
+        channels = st.tabs(["Amazon", "Flipkart", "Meesho"])
+        
+        channel_names = ["Amazon", "Flipkart", "Meesho"]
+        for i, channel in enumerate(channel_names):
+            with channels[i]:
+                final_df = transform_data(df_processed, channel, selected_cat)
+                st.dataframe(final_df.head(10), use_container_width=True)
+                
+                csv_out = final_df.to_csv(index=False).encode('utf-8')
+                st.download_button(f"📥 Download {channel} CSV", csv_out, f"{channel}_list.csv", key=f"dl_{channel}")
